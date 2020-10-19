@@ -7,6 +7,8 @@ bibliography: "references.bib"
 nocite: '@*'
 ---
 
+The Github link is https://github.com/Lily-WangQian/ProblemSet_3_G_78.git
+
 We use `R`[@citeR], `dplyr` package [@citedplyr],  `ggplot2` package [@citeggplot2], and  `gridExtra` package [@citegridExtra] to do the analysis.
 
 ```{r setup, include=FALSE}
