@@ -1,0 +1,219 @@
+---
+title: "Whether Males in BC Have Married or Not Is Affected by Their Age and Feelings of Life and Self-rated health"
+author: "Huayu Wu, Jingyi Nie, Qian Wang, Yueran Hu"
+date: "2020/10/19"
+output: bookdown::pdf_document2
+bibliography: "references.bib"
+nocite: '@*'
+---
+
+We use `R`[@citeR], `dplyr` package [@citedplyr],  `ggplot2` package [@citeggplot2], and  `gridExtra` package [@citegridExtra] to do the analysis.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(kableExtra)
+```
+
+# Abstract
+
+In this research, we used data from Public Use Microdata File (PUMF) of the 2017 General Social Survey (GSS) on the Family to explore whether the marriage of males who is 15 years of age and older in BC has a relationship with their ages, feelings about life and the feelings of their health. The results show that the relatively elder males with better feelings about life and self-evaluated health as “very good” and “excellent” are more likely to get married. The reason to research on this topic is that marriage may be a potential factor that affects social stability and the population ageing problem.
+
+# Introduction
+
+According to a study from the scholars of German Medical Center[@depaulo_2019], they found that satisfaction with single lives increases with age. However, this phenomenon is not conducive to some developed countries like Canada, since ageing population problem is getting serious in Canada[@clemens_parvani_2019]. With the lower marriage rate, the birth rate will decrease meanwhile, and the ageing problem will become more serious. Therefore, to know the relationship between people’s ages, feelings about life, feelings of health and their marriage is important. 
+ 
+We used data from Public Use Microdata File (PUMF) of the 2017 General Social Survey (GSS) on the Family to explore whether the marriage of males who is 15 years of age and older in BC has a relationship with their ages, feelings about life and the feelings of their health. The data of GSS was collected in 2017, the population of this data is all Canadian with 15 years older among 10 provinces. In this report, we focused on three factors that may affect the marriage of males - ages, feelings about life as a whole and self-rated health. After getting rid of the invalid data, we divided the data into five self-rated health levels to see their different age distributions and life satisfaction distributions. Additionally, we got the model between age and feelings about health and found that the elderly are more likely to rate themselves with relatively lower health levels. Then, we used the logistic regression model to predict the relationship between the marriage of males in British Columbia and their ages, feelings about life and feelings of health. We found that the relatively elder males with better feelings about life and self-evaluated health as “very good” and “excellent” are more likely to get married.
+ 
+However, in this research, our result has some limitations and we still need to improve our research. The first weakness is that we do not consider some lurking variables such as males’ financial status and if they ever been divorced. Additionally, the questions we asked in the questionnaire were too subjective, such as “feeling about life”, different people have different criteria, and it is hard for us to unify them. Meanwhile, the missing values may also influence our result. Thus, we still need to improve the research to get a more accurate and realistic result.
+
+# Data
+
+Our dataset is gathered from the Public Use Microdata File (PUMF) of the 2017 General Social Survey (GSS) on the family, which is a sample survey with cross-sectional design. In order to carry out sampling, the 2017 GSS used the stratification methodology to collect and sample data based on the geographic areas[@statistics_canada_2017]. To be specific, each of the ten provinces in Canada was divided into strata[@statistics_canada_2017]. The population of the survey is all Canadian 15 years of age and older, excluding full-time residents of institutions and residents of the Yukon, Northwest Territories, and Nunavut[@statistics_canada_2017]. Besides, the two distinct components of the survey frame are the list of all residences within the ten provinces in Canada and the list of telephone numbers which is available to Statistics Canada[@statistics_canada_2017]. Since the aim of our research is to predict whether the marriage of males who is 15 years of age and older in BC is related to their ages, feelings about life and the feelings of their health, our sample is males 15 years of age and older in British Columbia. The information of respondents was collected via computer assisted telephone interviews scheduled on the daytime of a week. Significantly, people who at first rejected to take the survey would be re-contacted up to two more times to encourage them to participate by explaining the importance of the survey[@statistics_canada_2017]. In order to avoid the time conflict, interviewers would make an appointment at a convenient time with participants to call back[@statistics_canada_2017]. Additionally, the first key feature of the survey is that it uses the stratified sampling method to collect data, which means each stratum within its province corresponds to a record in the frame[@statistics_canada_2017]. Another key feature is the survey frame is not created using single-source but using various available linked sources, such as Census of population[@statistics_canada_2017]. Moreover, the strengths of the survey are the sample size of data is large (about 20602) and the survey does not have non-sampling errors[@statistics_canada_2017]. However, there also exist some limitations in the survey, such as the potentially high cost and the long spent time of the telephone interview. In our dataset, we mainly used ever_married, which is the response variable, and age, feelings_life, self_rated_health, which are explanatory variables. In order to avoid the potential influence of some values, especially "NA" and "Don't know" in self_rated_health, we filtered our original data to only show the other five levels in self_rated_health. Since we focused on researching males in British Columbia, we established a new dataset by filtering the data to only show cases that province and sex are British Columbia and male respectively. 
+
+```{r, include = FALSE}
+set.seed(888)
+data <- read.csv("gss.csv")
+head(data)
+str(data) 
+```
+
+```{r, include = FALSE}
+# calculate percentage of missing values of each variable
+round(sapply(data, function(x) sum(is.na(x))/nrow(data)), 2)
+```
+
+```{r, include = FALSE}
+data <- data%>%filter(self_rated_health != "NA" & self_rated_health != "Don't know")
+new_data <- data %>% filter(province == "British Columbia" & sex == "Male")
+```
+
+1. Description of age group by self-rated health
+
+For the age of this dataset, we divided the data based on self-rated health into five levels to see their different age distributions.
+Table \@ref(tab:table1) indicates, for self-rated "Excellent" health levels, the range of age is from 15.1 to 80 years old. The mean age of excellent health level is 48.00 years old, and the median is 47.35, which means it is not a perfectly symmetrical distribution. The interquartile range is 30.76. 
+For self-rated "Good" health levels, the range of age is from 15.5 to 80 years old. The mean age of good health level is 54.23 years old, and the median is 56.55. The interquartile range is 22.77. 
+For self-rated "Poor" health levels, the range of age is from 22.8 to 80 years old. The mean age of poor health level is 61.29 years old, and the median is 64.55. The interquartile range is 20.70. 
+We see that participants with younger age would rate themselves higher health levels. That means age may have a positive relationship between health levels.
+
+```{r table1, echo = FALSE}
+age_sum <- new_data %>% group_by(self_rated_health) %>% summarise(min = min(age, na.rm=T), qrt_1st = quantile(age, prob = 0.25,na.rm = T), mean = mean(age, na.rm=T), median = median(age, na.rm = T), qrt_3rd = quantile(age, prob = 0.75, na.rm = T), max = max(age, na.rm=T))
+kable(age_sum, caption="Summary of age group by self rated health", digits=2, format="markdown")
+```
+
+2. Description of feelings about life as a whole group by self-rated health
+
+For feeling about life of this dataset, we divided the data based on self-rated health into five levels with ‘don’t know’ and ‘not available’ data to see their different life satisfactions distributions.
+Table \@ref(tab:table2) shows, for self-rated “Excellent” health levels, the range of life satisfactions is from 0 to 10. The mean feeling about life of excellent health level is 8.68, and the median is 9, which means it is not a perfectly symmetrical distribution. The interquartile range is 2. 
+For self-rated “Good” health levels, the range of life satisfactions is from 0 to 10. The mean feeling about life of good health level is 7.90, and the median is 8. The interquartile range is 2. 
+For self-rated “Poor” health levels, the range of life satisfactions is from 0 to 10. The mean feeling about life of poor health level is 5.66, and the median is 5. The interquartile range is 4. 
+We see that participants with a worse feeling about life would rate themselves lower health levels. That means feeling about life may have a positive relationship between health levels.
+
+```{r table2, echo = FALSE}
+feel_life_sum <- new_data %>% group_by(self_rated_health) %>% summarise(min = min(feelings_life, na.rm=T), qrt_1st = quantile(feelings_life, prob = 0.25, na.rm = T), mean = mean(feelings_life, na.rm=T), median = median(feelings_life, na.rm = T), qrt_3rd = quantile(feelings_life, prob = 0.75, na.rm = T), max = max(feelings_life, na.rm=T))
+kable(feel_life_sum, caption="Summary of feelings about life as a whole group by self rated health", digits=2, format="markdown")
+```
+
+# Graphs
+
+```{r fig1, fig.cap="fig1", echo = FALSE}
+new_data %>% ggplot(aes(age)) + geom_histogram(col="black", fill="deepskyblue", alpha=0.5) + theme_classic() + 
+  labs(title="The histogram of age", 
+       caption = "Data source: 2017 General Social Survey")
+```
+
+Figure \@ref(fig:fig1) shows the distribution of age is not symmetric. We see that the prominent peak lies to the right with the tail extending to the left, that means it is a left-skewed. The variable of age is not approximately normal. Moreover, there are about 80 participants who are the age of 80, which takes the biggest quantity of all participants.
+
+```{r fig2, fig.cap="fig2", echo = FALSE}
+new_data %>% ggplot(aes(feelings_life)) + geom_histogram(col="black", fill="pink", alpha=0.5) + theme_classic() + 
+  labs(title="The histogram of feelings about life as a whole", 
+       caption = "Data source: 2017 General Social Survey")
+```
+
+Figure \@ref(fig:fig2) demonstrates the distribution of feelings about life as a whole is not symmetric. We see that the prominent peak roughly lies to the right with the tail extending to the left, that means it is an approximately left-skewed. The variable of feelings about life as a whole is not approximately normal. There are more than 300 participants who rated their feelings about life 8, which takes the biggest quantity of all participants.
+
+
+The scatter plots of age and feelings about life as a whole group by self rated health
+
+```{r fig3, fig.cap="fig3", echo = FALSE}
+new_data %>% ggplot(aes(x=age, y=feelings_life)) + geom_point() + geom_smooth(method="lm") +
+  facet_wrap(~self_rated_health) 
+```
+
+Firstly, by observing Figure \@ref(fig:fig3), we found that the distributions of all points divided by self-rated health are not diffuse. Secondly, we observe that age and feelings about life as a whole may have a weak linear relationship between each other in every self-rated health level. Thirdly, we can see a weak positive direction form all six plots. Among six self-rated health levels, we know that "Poor" health level has the largest slope. That means participants with higher age would rate themselves worse health levels, especially for people who rated their health levels as "poor".
+
+```{r, echo = FALSE, fig.caps="The graphs of explanatory variables: age, feeling life and self_rated_health"}
+graph1 <- new_data %>% ggplot(aes(self_rated_health)) + geom_bar() + theme_classic() + labs(title="The bar plot of self rated health", 
+       caption = "Data source: 2017 General Social Survey")
+
+graph2 <-new_data %>% ggplot(aes(x=self_rated_health, y=age)) + geom_boxplot() + labs(title="The box plot of self rated health and age", 
+       caption = "Data source: 2017 General Social Survey")
+
+graph3 <-new_data %>% ggplot(aes(x=self_rated_health, y=feelings_life)) + geom_boxplot() + labs(title="The box plot of self rated health and feelings about life as a whole", 
+       caption = "Data source: 2017 General Social Survey")
+
+graph4 <- new_data %>% ggplot(aes(x=age, y=feelings_life)) +
+  geom_point() + theme_classic() + labs(title="The plot of age and feelings about life as a whole", 
+       caption = "Data source: 2017 General Social Survey")
+
+grid.arrange(graph1,graph2,graph3,graph4)
+```
+
+For the bar plot of self-rated health, we see that "Very good" self-rated health level takes the maximum population about 400, followed by "Good" self-rated health level and "Excellent" self rated health level. That shows people generally consider themselves healthy.
+
+For the box plot of self-rated health and age, we see that participants’ ages are approximately normal distribution and approximately symmetric with a slight right-skewed in five self-rated health level. There is no outlier in data. The median of all five self-rated health levels is between 45 and 65 years old. "Poor" self-rated health level has the highest median age.
+
+From the box plot of self-rated health and feelings about life, we found that participants’ feelings about life may not be a normal distribution. There are some outliers in "Excellent", "Good", and "Very good" self-rated health levels, which might affect the result of the distributions. 
+
+Lastly, the plot of age and feelings about life as a whole group shows that the distribution of all points is an even distribution. We cannot find a linear relation between each other.
+
+
+** research question: predict ever married among males in BC **
+
+```{r table3, echo = FALSE}
+new_data <- new_data %>% mutate(ever_married = case_when(
+  ever_married == "Yes" ~ 1,
+  ever_married == "No" ~ 0
+))
+
+new_data <- new_data %>% mutate(self_rated_health = case_when(
+  self_rated_health == "Excellent" ~ 5,
+  self_rated_health == "Very good" ~ 4,
+  self_rated_health == "Good" ~ 3,
+  self_rated_health == "Fair" ~ 2,
+  self_rated_health == "Poor" ~ 1
+))
+
+self_rated_health_a<-as.factor(new_data$self_rated_health)
+self_rated_health_b<-factor(self_rated_health_a,levels=c(1,2,3,4,5),labels=c("Poor","Fair","Good","Very good","Excellent"))
+
+logit_model<-glm(ever_married ~ age + feelings_life + self_rated_health_b, data = new_data, family="binomial")
+
+summary(logit_model)
+kable(summary(logit_model)$coefficients, caption="Summary of model estimates", digits=3)
+```
+
+The logistic regression we illustrated here describes the linear relationship about how all the explanatory variables which are respondents’ age, the feelings about their life, and their self-rated health relate to the response variable which is whether the respondent ever legally married.
+From the positive coefficient of the age and feelings_life, it is clear that the respondent’s age and their feeling about their own life increase the odds that the respondents have legally married. For the five levels of how respondents rate their health, compared to the evaluation of poor, the respondents who rate themselves have fair or good health tend to have fewer odds of having married legally in BC. By contrast, the respondents who think themselves have a very good and excellent health increase the odds of having married.
+Moreover, according to Table \@ref(tab:table3), we could know the estimate, standard error, test statistics, and respective p-value for each explanatory variable
+
+# Model
+
+$$
+\begin{aligned}
+ y_i = &-4.232 + 0.080 x_{age,i} + 0.133x_{feelings_life,i} - 0.240x_{self_rated_health_2,i} \\
+&- 0.025x_{self_rated_health_3,i} + 0.247x_{self_rated_health_4,i}+ 0.315x_{self_rated_health_5,i} + \epsilon_i
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+ Y_i = &-4.232 + 0.080 X_{age,i} + 0.133X_{feelings_life,i} - 0.240X_{self_rated_health_2,i} \\
+&- 0.025X_{self_rated_health_3,i} + 0.247X_{self_rated_health_4,i}+ 0.315X_{self_rated_health_5,i} + \epsilon_i 
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+\log\frac{p_i}{1-p_i} = &-4.232 + 0.080 x_{age,i} + 0.133x_{feelings_life,i} - 0.240x_{self_rated_health_2,i} \\
+&- 0.025x_{self_rated_health_3,i} + 0.247x_{self_rated_health_4,i}+ 0.315x_{self_rated_health_5,i} + \epsilon_i
+\end{aligned}
+$$
+
+Here is the final logistic regression model we have estimated. The family of the response variable is binomial and informs the respondents are legally married or not. Thus, the generalized linear model is not just a linear regression, instead, it is going to be logistic regression. This model tries to determine what respondents’ characteristics indicate their marriage’s history. Also, we want to see do the respondents’ age, their feeling of their own lives and their self-rated health bring influence on the odds of having married legally or not.
+The formula we illustrated here tells us the relationship between the response variable which is whether the respondent ever legally married and all explanatory variables which are respondents’ age, the feelings about their life, and their self-rated health. p is the probability of the male respondent have married legally.
+
+$$
+\begin{aligned}
+\log\frac{p_i}{1-p_i}= &\beta_0 + \beta_1 x_{age,i} + \beta_2x_{feelings_life,i} - \beta_3x_{self_rated_health_2,i} \\
+&- \beta_4x_{self_rated_health_3,i} + \beta_5x_{self_rated_health_4,i}+ \beta_6x_{self_rated_health_5,i} + \epsilon_i
+\end{aligned}
+$$
+
+The estimated coefficient $\beta_1$ and $\beta_2$ represent the change in log odds for every one unit increase in age and level of self-feeling of life. In other words, $\beta_1$ means when male respondent’s age increases 1 year, the odds that they have married legally increase by 0.080%. The level of respondents feeling of their own life is ranked from 1 to 10, thus, $\beta_2$ means when male respondent’s feeling of their life increases by 1 unit, their probability of having married legally increase 0.133%.
+We notice that the respondents’ answers to self-rated health are categorical. Thus, we classify the self-rated health into 5 levels which are Excellent, very good, good, fair, and poor. We rank these five categories from 1 to 5 where 1 indicates poor and 5 indicates excellent. According to the rank, we can see that excellent is better than very good and very good is better than good, and so on.
+As a result, we use the dummy variable coding with the explanatory variable self-rated health to help us build the model. The first self-rated health category as poor is a reference category that does not require a variable. The estimated coefficient $\beta_3$ of the second self-rated health category is -0.240 illustrates that there is a decrease compared to rank 1 which is poor. Similarly, the estimated coefficient $\beta_3$ of the second self-rated health category is -0.247 tells us that there is a bigger decrease compare to rank 1. This concludes these two self-estimated feelings of life decrease the odds that the male resident in BC has legally married.
+Thus, the coefficient for the dummy variables for the ranks, $\beta_3$, $\beta_4$, $\beta_5$, and $\beta_6$ are not actual coefficient for that rank itself, it is the difference between that rank of the self-estimated feeling of life and the feeling of poor.
+
+# Result
+
+In summary, the table above shows that participants who are in younger age might rate themselves higher health levels, which means age may have a positive relationship between health levels. For another table, we see that people with a worse feeling about life would rate themselves lower health levels, which means there is also a positive relation between them. The histogram of age shows participants who are 80 years old takes the biggest quantity of all participants. Moreover, the histogram of feelings about life tells us most participants are satisfied with their life. The scatter plot shows for people who rated their health levels as “poor”, they intend to have a higher age than other participants. Also, people generally consider themselves healthy, except for ager people who self-rated themselves “Poor” health level. Furthermore, we established a logistic regression model and aimed to estimate the coefficient for the linear system of the relationship between the response variable which is whether the respondent ever legally married and all explanatory variables which are respondents’ age, the feelings about their life and their self-rated health. The research result is whether males in BC have married or not is affected by their age and feelings of life and self-rated health.
+
+# Discussion
+
+This model could predict the possibility of whether a male respondent has ever legally married or not in BC by given the corresponding respondent’s age, self-rated health, and their feeling of life. The table of the summary of model estimates shows how each explanatory variable which is which are respondents’ age, the feelings about their life, and their self-rated health brings influence the response variable which is whether the respondents ever legally married. It is obvious that respondents’ age and their feeling of life increase the possibility of having married. However, the effect of their self-rated health on whether the respondents ever legally married might be not very clear. Particularly, when male respondents think their health is fair and good, their odds of having married legally is lower than the respondents who think their health is poor, however, when male respondents think their health is excellent and very good, their odds of having married legally is higher than the respondents who think their health is poor. It may be caused by the influence of other factors. In general, age and feelings of life and self-rated health increase the possibility of having married for males in BC. Therefore, whether males in BC have married or not is affected by their age and feelings of life and self-rated health.
+
+# Weaknesses
+
+Firstly, the most apparent limitation of our analysis is lurking variables. Even we use the logistic regression model to predict the married marital status among males in BC, we should still consider their financial status, ever second marriage, they have children or not, since those factors significantly affect the self-rated health. Moreover, some questions like "feelings about life" are considered inaccurate, since the participants are easy to alter their choices depending on their current moods, which could affect the true outcome of this study.
+
+# Next Steps
+
+For future work, we can consider more lurking variables, like “financial status, ever second marriage, they have children or not”, and make other regression models to predict the married marital status. Then, we can compare with our past work to find the impact of each factor. Secondly, making a residual plot of the models to see if there is any limitation of data. Finally, we would find effective methods to decrease the influence of outliers on the result.
+
+
+# References
+
+ 
